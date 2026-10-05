@@ -1,0 +1,59 @@
+services:
+  api:
+    container_name: reuniaoia-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5279:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      Ollama__BaseUrl: http://ollama:11434
+      Ollama__Model: qwen3:8b
+    volumes:
+      - whisper_models:/app/Models
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-pull-model:
+        condition: service_completed_successfully
+    networks:
+      - reuniaoia-network
+
+  ollama:
+    container_name: reuniaoia-ollama
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - reuniaoia-network
+
+  # Serviço auxiliar para baixar o modelo automaticamente
+  ollama-pull-model:
+    image: curlimages/curl:latest
+    container_name: reuniaoia-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen3:8b\"}'"
+    networks:
+      - reuniaoia-network
+
+volumes:
+  whisper_models:
+    name: reuniaoia-whisper-models
+  ollama_models:
+    name: reuniaoia-ollama-models
+
+networks:
+  reuniaoia-network:
+    name: reuniaoia-network
