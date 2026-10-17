@@ -7,41 +7,78 @@ namespace ReuniaoIA.Api.Services;
 
 public class WhisperService : IWhisperService
 {
+
+    private readonly AudioConverterService _audioConverter;
+
+    public WhisperService(AudioConverterService audioConverter)
+    {
+        _audioConverter = audioConverter;
+    }
+    /*
+        public async Task<string> TranscreverAsync(
+            Stream audioStream,
+            CancellationToken cancellationToken = default)
+        {
+            var modelPath = await ObterModeloAsync();
+
+            using var whisperFactory =
+                WhisperFactory.FromPath(modelPath);
+
+            using var processor = whisperFactory
+                .CreateBuilder()
+                .WithLanguage("pt")
+                .Build();
+
+            // Copia o áudio recebido para memória
+            using var inputStream = new MemoryStream();
+
+            await audioStream.CopyToAsync(
+                inputStream,
+                cancellationToken);
+
+            inputStream.Position = 0;
+
+            // Converte o áudio para WAV 16 kHz mono
+            using var wavStream = ConverterPara16KhzMono(inputStream);
+
+            wavStream.Position = 0;
+
+            var resultado = new List<string>();
+
+            await foreach (var segment in processor.ProcessAsync(
+                wavStream,
+                cancellationToken))
+            {
+                resultado.Add(segment.Text);
+            }
+
+            return string.Join(" ", resultado);
+        }*/
+
     public async Task<string> TranscreverAsync(
         Stream audioStream,
         CancellationToken cancellationToken = default)
     {
         var modelPath = await ObterModeloAsync();
 
-        using var whisperFactory =
-            WhisperFactory.FromPath(modelPath);
+        using var whisperFactory = WhisperFactory.FromPath(modelPath);
 
         using var processor = whisperFactory
             .CreateBuilder()
             .WithLanguage("pt")
             .Build();
 
-        // Copia o áudio recebido para memória
-        using var inputStream = new MemoryStream();
-
-        await audioStream.CopyToAsync(
-            inputStream,
+        using var wavStream = await _audioConverter.ConverterParaWavAsync(
+            audioStream,
             cancellationToken);
-
-        inputStream.Position = 0;
-
-        // Converte o áudio para WAV 16 kHz mono
-        using var wavStream = ConverterPara16KhzMono(inputStream);
-
-        wavStream.Position = 0;
 
         var resultado = new List<string>();
 
-        await foreach (var segment in processor.ProcessAsync(
+        await foreach (var segmento in processor.ProcessAsync(
             wavStream,
             cancellationToken))
         {
-            resultado.Add(segment.Text);
+            resultado.Add(segmento.Text);
         }
 
         return string.Join(" ", resultado);

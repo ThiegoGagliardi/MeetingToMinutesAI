@@ -7,6 +7,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<AudioConverterService>();
 builder.Services.AddScoped<IWhisperService, WhisperService>();
 
 builder.Services.AddHttpClient<IOllamaService, OllamaService>(client =>
